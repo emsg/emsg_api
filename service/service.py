@@ -120,12 +120,9 @@ class user(BaseService):
         if id:
             auth_user = User.objects.get(id=id)
             user_info = UserInfo.objects.get(id=id)
-        d1 = model_to_dict(auth_user)
-        logger.debug('d1 = %s' % d1)
-        d2 = model_to_dict(user_info)
-        logger.debug('d2 = %s' % d2)
+        d1 = model_to_dict(user_info)
+        d2 = dict(username=auth_user.username,email=auth_user.email)
         d1.update(d2)
-        logger.debug('d3 = %s' % d1)
         return d1
 
     def _get_emsg_server(self):
