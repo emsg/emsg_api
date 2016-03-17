@@ -38,7 +38,8 @@ def main(request):
                 code='1000',
                 reason=errors.error_1000
             )
-        )),charset='utf8',content_type='text/json')
+        )),
+        charset='utf8',content_type='text/json')
 
 
 

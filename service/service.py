@@ -15,6 +15,29 @@ logger = logging.getLogger(__name__)
 from django.forms.models import model_to_dict
 from django.contrib.auth import *
 
+def token(x):
+    '''
+    校验 token 是否有效
+    :param x:
+    :return:
+    '''
+    def f(*args):
+        sn,token = '',''
+        for p in args:
+            if type(p) == dict:
+                sn = p.get('sn')
+                token = p.get('token')
+        if token :
+            try:
+                UserToken.objects.get(id=token)
+                return x(*args)
+            except:
+                return BaseService()._success(sn=sn,success=False,code='2000',reason=errors.error_2000)
+        else:
+            return BaseService()._success(sn=sn,success=False,code='2000',reason=errors.error_2000)
+    return f
+
+
 class BaseService(object):
     def _success(self,sn,success=True,entity={},code='',reason=''):
         if success:
@@ -30,7 +53,7 @@ class user(BaseService):
     '''
     def register(self,body):
         '''
-        用户注册
+        1 用户注册
         '''
         try:
             with transaction.atomic():
@@ -73,7 +96,7 @@ class user(BaseService):
                 user_info.save()
                 logger.debug('create_user_info ==> %s' % user.__dict__)
 
-                user_map = self._get_user(auth_user=user,user_info=user_info)
+                user_map = self._get_user_map(auth_user=user,user_info=user_info)
                 logger.debug('user_map ==> %s' % user_map)
                 user_token = self._gen_token(user_info.id)
 
@@ -88,7 +111,7 @@ class user(BaseService):
 
     def login(self,body):
         '''
-        用户登陆
+        2 用户登陆
         '''
         sn = body.get('sn')
         username = body['params']['username']
@@ -97,7 +120,7 @@ class user(BaseService):
         if u.check_password(password):
             # TODO 获取用户信息
             user_token = self._gen_token(u.id)
-            user_map = self._get_user(id=u.id)
+            user_map = self._get_user_map(id=u.id)
             return self._success(sn=sn,success=True,entity=dict(
                 token = user_token.id,
                 user = user_map,
@@ -106,20 +129,47 @@ class user(BaseService):
         else:
             return self._success(sn=sn,success=False,code='1002',reason=errors.error_1002)
 
+    @token
+    def get_user_info(self,body):
+        '''
+        3 获取用户信息
+        '''
+        sn = body.get('sn')
+        token = body.get('token')
+        params = body.get('params')
+        if params and params.has_key('userid'):
+            userid = params.get('userid')
+            user_map = self._get_user_map(id=userid)
+        else :
+            user_map = self._get_user_map(token=token)
+        return self._success(sn=sn,success=True,entity=dict(
+                user = user_map,
+        ))
 
 
-    def _get_user(self,id=None,auth_user=None,user_info=None):
+    ########################################
+    ## private
+    ########################################
+
+    def _get_user_map(self,id=None,auth_user=None,user_info=None,token=None):
         '''
         根据传入的参数不同,用不同的方式去拼凑 user 字典
         包含 auth_user 和 user_info 两张表的信息,其中日期可以处理掉,转成时间戳
         :param id: 如果有id则从数据库取,否则用另外两个对象来拼
         :param auth_user:
         :param user_info:
+        :param token:
         :return:
         '''
         if id:
             auth_user = User.objects.get(id=id)
             user_info = UserInfo.objects.get(id=id)
+        elif token :
+            tokenPo = UserToken.objects.get(id=token)
+            userid = tokenPo.userid
+            auth_user = User.objects.get(id=userid)
+            user_info = UserInfo.objects.get(id=userid)
+
         d1 = model_to_dict(user_info)
         d2 = dict(username=auth_user.username,email=auth_user.email)
         d1.update(d2)
@@ -130,7 +180,9 @@ class user(BaseService):
         if el :
             e = el[0]
             e.licence = ''
-            return model_to_dict(e)
+            d = model_to_dict(e)
+            del d['id']
+            return d
         else:
             return {}
 
@@ -141,3 +193,8 @@ class user(BaseService):
         user_token.ct = int(time.time())
         user_token.save()
         return user_token
+
+
+
+
+
