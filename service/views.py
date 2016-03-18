@@ -8,6 +8,7 @@ import json
 import logging
 import errors
 from service import *
+from service_emsg import *
 import emsg_simple_api.utils as utils
 logger = logging.getLogger(__name__)
 
