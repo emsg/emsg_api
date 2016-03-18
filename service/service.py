@@ -175,7 +175,7 @@ class user(BaseService):
         '''
         sn,token,params = self._get_sn_token_params(body)
         try:
-            with transaction.atomit():
+            with transaction.atomic():
                 auth_user,user_info = self._get_user_by_token(token)
                 email = params.get('email')
                 if email and email != auth_user.email :
@@ -188,9 +188,9 @@ class user(BaseService):
                 nickname = params.get('nickname')
                 gender = params.get('gender')
                 birthday = params.get('birthday')
-                user_info.nickname = nickname
-                user_info.gender = gender
-                user_info.birthday = birthday
+                if nickname: user_info.nickname = nickname
+                if gender: user_info.gender = gender
+                if birthday: user_info.birthday = birthday
                 user_info.save()
                 return self._success(sn=sn,success=True)
         except Exception as e:
