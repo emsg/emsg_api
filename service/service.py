@@ -44,6 +44,26 @@ class BaseService(object):
             return dict(sn=sn,success=success,entity=entity)
         else :
             return dict(sn=sn,success=success,entity=dict(code=code,reason=reason))
+    def _get_user_by_token(self,token):
+        '''
+        根据token获取用户po,包括 auth_user 和 user_info 两个对象
+        :param token:
+        :return:  [auth_user,user_info]
+        '''
+        try :
+            tokenPo = UserToken.objects.get(id=token)
+            userid = tokenPo.userid
+            auth_user = User.objects.get(id=userid)
+            user_info = UserInfo.objects.get(id=userid)
+            return [auth_user,user_info]
+        except Exception as e :
+            raise e
+
+    def _get_sn_token_params(self,body):
+        sn = body.get('sn')
+        token = body.get('token')
+        params = body.get('params')
+        return [sn,token,params]
 
 class user(BaseService):
     '''
@@ -134,17 +154,86 @@ class user(BaseService):
         '''
         3 获取用户信息
         '''
-        sn = body.get('sn')
-        token = body.get('token')
-        params = body.get('params')
+        sn,token,params = self._get_sn_token_params(body)
+        user_map = {}
         if params and params.has_key('userid'):
             userid = params.get('userid')
             user_map = self._get_user_map(id=userid)
         else :
             user_map = self._get_user_map(token=token)
-        return self._success(sn=sn,success=True,entity=dict(
-                user = user_map,
-        ))
+        if user_map :
+            return self._success(sn=sn,success=True,entity=dict(
+                    user = user_map,
+            ))
+        else:
+            return self._success(sn=sn,success=False,code='1003',reason=errors.error_1003)
+
+    @token
+    def update_user_info(self,body):
+        '''
+        4 修改用户信息
+        '''
+        sn,token,params = self._get_sn_token_params(body)
+        try:
+            with transaction.atomit():
+                auth_user,user_info = self._get_user_by_token(token)
+                email = params.get('email')
+                if email and email != auth_user.email :
+                    try:
+                        User.objects.get(email=email)
+                        return self._success(sn=sn,success=False,code='1001_2',reason=errors.error_1001_2)
+                    except:
+                        auth_user.email = email
+                        auth_user.save()
+                nickname = params.get('nickname')
+                gender = params.get('gender')
+                birthday = params.get('birthday')
+                user_info.nickname = nickname
+                user_info.gender = gender
+                user_info.birthday = birthday
+                user_info.save()
+                return self._success(sn=sn,success=True)
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
+            return self._success(sn=sn,success=False,code='1004',reason=errors.error_1004)
+
+    @token
+    def set_icon(self,body):
+        '''
+        5 修改用户头像
+        '''
+        sn,token,params = self._get_sn_token_params(body)
+        icon = params.get('icon_url')
+        auth_user,user_info = self._get_user_by_token(token)
+        user_info.icon = icon
+        user_info.save()
+        return self._success(sn=sn,success=True)
+
+    @token
+    def update_password(self,body):
+        '''
+        6 修改密码
+        '''
+        try:
+            sn,token,params = self._get_sn_token_params(body)
+            auth_user,user_info = self._get_user_by_token(token)
+            old_password = params.get('old_password')
+            new_password = params.get('new_password')
+            if old_password and new_password:
+                if auth_user.check_password(old_password):
+                    auth_user.set_password(new_password)
+                    auth_user.save()
+                    return self._success(sn=sn,success=True)
+                else:
+                    return self._success(sn=sn,success=False,code='1006',reason=errors.error_1006_2)
+            else:
+                return self._success(sn=sn,success=False,code='1006',reason=errors.error_1006_1)
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
+            return self._success(sn=sn,success=False,code='1006',reason=errors.error_1006_3)
+
 
 
     ########################################
@@ -165,11 +254,13 @@ class user(BaseService):
             auth_user = User.objects.get(id=id)
             user_info = UserInfo.objects.get(id=id)
         elif token :
-            tokenPo = UserToken.objects.get(id=token)
-            userid = tokenPo.userid
-            auth_user = User.objects.get(id=userid)
-            user_info = UserInfo.objects.get(id=userid)
-
+            auth_user,user_info = self._get_user_by_token(token)
+            #tokenPo = UserToken.objects.get(id=token)
+            #userid = tokenPo.userid
+            #auth_user = User.objects.get(id=userid)
+            #user_info = UserInfo.objects.get(id=userid)
+        elif auth_user==None or user_info==None:
+            raise Exception("notfound")
         d1 = model_to_dict(user_info)
         d2 = dict(username=auth_user.username,email=auth_user.email)
         d1.update(d2)
