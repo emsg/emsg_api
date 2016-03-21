@@ -289,16 +289,20 @@ class user(BaseService):
         '''
         try:
             sn, token, params = self._get_sn_token_params(body)
+            current_user_map = self._get_user_map(token=token)
             email = params.get('email')
             nickname = params.get('nickname')
             user_list = []
             if email :
                 for auth_user in User.objects.filter(email__contains=email):
-                    user_info = UserInfo.objects.get(id=auth_user.id)
-                    user_list.append(model_to_dict(user_info))
+                    user_map = self._get_user_map(id=auth_user.id)
+                    user_map['is_contact'] = self._is_contact(userid=current_user_map['id'],contactid=auth_user.id)
+                    user_list.append(user_map)
             elif nickname :
                 for user_info in UserInfo.objects.filter(nickname__contains=nickname):
-                    user_list.append(model_to_dict(user_info))
+                    user_map = self._get_user_map(id=user_info.id)
+                    user_map['is_contact'] = self._is_contact(userid=current_user_map['id'],contactid=user_info.id)
+                    user_list.append(user_map)
             return self._success(sn=sn, success=True,entity={'user_list':user_list})
         except Exception as e:
             logger.error(e)
@@ -518,6 +522,17 @@ class user(BaseService):
             return d
         else:
             return {}
+
+    def _is_contact(self,userid,contactid):
+        '''
+        是否为好友
+        :param userid:
+        :param contactid:
+        :return: True / False
+        '''
+        for contact in UserContact.objects.filter(userid=userid,contactid=contactid,status='accept'):
+            return True
+        return False
 
     def _gen_token(self, userid):
         user_token = UserToken()
