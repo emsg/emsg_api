@@ -252,6 +252,7 @@ class user(BaseService):
             logger.error(traceback.format_exc())
             return self._success(sn=sn, success=False, code='1006', reason=errors.error_1006_3)
 
+    @token
     def contact(self, body):
         '''
         7 联系人接口
@@ -278,6 +279,26 @@ class user(BaseService):
             logger.error(traceback.format_exc())
             return self._success(sn=sn, success=False, code='1007', reason=errors.error_1007)
 
+    @token
+    def find_user(self, body):
+        '''
+        8 查找用户
+        目前只支持昵称查找
+        :param body:
+        :return:
+        '''
+        try:
+            sn, token, params = self._get_sn_token_params(body)
+            nickname = params.get('nickname')
+            user_list = []
+            for user_info in UserInfo.objects.filter(nickname__contains=nickname):
+                user_list.append(model_to_dict(user_info))
+            return self._success(sn=sn, success=True,entity={'user_list':user_list})
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
+            return self._success(sn=sn, success=False, code='1008', reason=errors.error_1008)
+
     ########################################
     ## private
     ########################################
@@ -294,7 +315,7 @@ class user(BaseService):
         for contact in UserContact.objects.filter(userid=userid ):
             user_info = UserInfo.objects.get(id=userid)
             contacts.append(dict(
-                userid=user_info.id,
+                id=user_info.id,
                 icon = user_info.icon,
                 nickname = user_info.nickname
             ))
@@ -500,26 +521,3 @@ class user(BaseService):
         user_token.save()
         return user_token
 
-
-class foo(BaseService):
-    def bar(self, body):
-        try:
-            packet = {
-                "envelope": {
-                    "id": "xxxx",
-                    "type": 1,
-                    "from": "usera@test",
-                    "to": "userb@test",
-                    "ack": 1
-                },
-                "vsn": "0.0.1",
-                "payload": {
-                    "content": "hellow world , foo bar"
-                }
-            }
-            packet_str = json.dumps(packet)
-            emsg_client.process(packet_str)
-        except:
-            pass
-
-        return self._success(sn='hello', success=True)
