@@ -121,7 +121,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-APPEND_SLASH = True
+APPEND_SLASH = False
 
 LOGGING = {
     'version': 1,
