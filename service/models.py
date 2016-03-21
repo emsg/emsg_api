@@ -1,5 +1,7 @@
+# /usr/bin/env python
+# coding=utf8
 from __future__ import unicode_literals
-
+import time
 from django.db import models
 
 class UserInfo(models.Model):
@@ -25,4 +27,18 @@ class UserToken(models.Model):
     ct = models.IntegerField()
     class Meta:
         db_table='user_token'
+
+
+class UserContact(models.Model):
+    '''
+    联系人信息
+    '''
+    userid = models.IntegerField()
+    contactid = models.IntegerField()
+    dnd = models.IntegerField(default=1)
+    status = models.CharField(max_length=50L,blank=True,default='add')
+    ct = models.IntegerField(default=int(time.time()))
+    et = models.IntegerField(default=int(time.time()))
+    class Meta:
+        db_table='user_contact'
 

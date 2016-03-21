@@ -1,19 +1,21 @@
-#/usr/bin/env python
-#coding=utf8
+# /usr/bin/env python
+# coding=utf8
+import json
 import logging
-import traceback
-
-from django.db import transaction
-
-import errors
-import uuid
 import time
-from models import *
-from django.contrib.auth.models import User
+import traceback
+import uuid
+import emsg_simple_api.emsg_client as emsg_client
+
 import django.utils.timezone as dtz
+from django.contrib.auth.models import User
+from django.db import transaction
+import errors
+from models import *
+
 logger = logging.getLogger(__name__)
 from django.forms.models import model_to_dict
-from django.contrib.auth import *
+
 
 def token(x):
     '''
@@ -21,49 +23,62 @@ def token(x):
     :param x:
     :return:
     '''
+
     def f(*args):
-        sn,token = '',''
+        sn, token = '', ''
         for p in args:
             if type(p) == dict:
                 sn = p.get('sn')
                 token = p.get('token')
-        if token :
+        if token:
             try:
                 UserToken.objects.get(id=token)
                 return x(*args)
             except:
-                return BaseService()._success(sn=sn,success=False,code='2000',reason=errors.error_2000)
+                return BaseService()._success(sn=sn, success=False, code='2000', reason=errors.error_2000)
         else:
-            return BaseService()._success(sn=sn,success=False,code='2000',reason=errors.error_2000)
+            return BaseService()._success(sn=sn, success=False, code='2000', reason=errors.error_2000)
+
     return f
 
 
 class BaseService(object):
-    def _success(self,sn,success=True,entity={},code='',reason=''):
+    def _success(self, sn, success=True, entity={}, code='', reason=''):
         if success:
-            return dict(sn=sn,success=success,entity=entity)
-        else :
-            return dict(sn=sn,success=success,entity=dict(code=code,reason=reason))
-    def _get_user_by_token(self,token):
+            return dict(sn=sn, success=success, entity=entity)
+        else:
+            return dict(sn=sn, success=success, entity=dict(code=code, reason=reason))
+
+    def _get_user_by_token(self, token):
         '''
         根据token获取用户po,包括 auth_user 和 user_info 两个对象
         :param token:
         :return:  [auth_user,user_info]
         '''
-        try :
+        try:
             tokenPo = UserToken.objects.get(id=token)
             userid = tokenPo.userid
             auth_user = User.objects.get(id=userid)
             user_info = UserInfo.objects.get(id=userid)
-            return [auth_user,user_info]
-        except Exception as e :
+            return [auth_user, user_info]
+        except Exception as e:
             raise e
 
-    def _get_sn_token_params(self,body):
+    def _jid(self, userid):
+        '''
+        获取 jid
+        :param userid:
+        :return:
+        '''
+        es = EmsgServer.objects.all()[0]
+        return '%s@%s' % (userid, es.domain)
+
+    def _get_sn_token_params(self, body):
         sn = body.get('sn')
         token = body.get('token')
         params = body.get('params')
-        return [sn,token,params]
+        return [sn, token, params]
+
 
 class user(BaseService):
     '''
@@ -71,7 +86,8 @@ class user(BaseService):
     文档参见
     https://github.com/emsg/emsg_simple_api/wiki/%E7%94%A8%E6%88%B7%E6%A8%A1%E5%9D%97
     '''
-    def register(self,body):
+
+    def register(self, body):
         '''
         1 用户注册
         '''
@@ -83,18 +99,20 @@ class user(BaseService):
                 nickname = body['params']['nickname']
                 email = body['params']['email']
                 gender = body['params']['gender']
-                geo = body['params'].get('geo') #坐标
+                geo = body['params'].get('geo')  # 坐标
                 birthday = body['params']['birthday']
                 # 如果能取到,则不可以再注册了,就是注册过了
                 # 用户名和邮箱不能重复
                 try:
                     User.objects.get(username=username)
-                    return self._success(sn=sn,success=False,code='1001_1',reason=errors.error_1001_1)
-                except: logger.debug('该用户名合法 %s' % username)
+                    return self._success(sn=sn, success=False, code='1001_1', reason=errors.error_1001_1)
+                except:
+                    logger.debug('该用户名合法 %s' % username)
                 try:
                     User.objects.get(email=email)
-                    return self._success(sn=sn,success=False,code='1001_2',reason=errors.error_1001_2)
-                except: logger.debug('该邮箱名合法 %s' % email)
+                    return self._success(sn=sn, success=False, code='1001_2', reason=errors.error_1001_2)
+                except:
+                    logger.debug('该邮箱名合法 %s' % email)
                 now = dtz.now()
                 user = User()
                 user.username = username
@@ -116,20 +134,20 @@ class user(BaseService):
                 user_info.save()
                 logger.debug('create_user_info ==> %s' % user.__dict__)
 
-                user_map = self._get_user_map(auth_user=user,user_info=user_info)
+                user_map = self._get_user_map(auth_user=user, user_info=user_info)
                 logger.debug('user_map ==> %s' % user_map)
                 user_token = self._gen_token(user_info.id)
 
-                return self._success(sn=sn,success=True,entity=dict(
-                    token = user_token.id,
-                user = user_map,
-                emsg_server = self._get_emsg_server()
-            ))
+                return self._success(sn=sn, success=True, entity=dict(
+                    token=user_token.id,
+                    user=user_map,
+                    emsg_server=self._get_emsg_server()
+                ))
         except:
             logger.error(traceback.format_exc())
-            return self._success(sn=sn,success=False,code='1000',reason=errors.error_1000)
+            return self._success(sn=sn, success=False, code='1000', reason=errors.error_1000)
 
-    def login(self,body):
+    def login(self, body):
         '''
         2 用户登陆
         '''
@@ -141,47 +159,47 @@ class user(BaseService):
             # TODO 获取用户信息
             user_token = self._gen_token(u.id)
             user_map = self._get_user_map(id=u.id)
-            return self._success(sn=sn,success=True,entity=dict(
-                token = user_token.id,
-                user = user_map,
-                emsg_server = self._get_emsg_server()
+            return self._success(sn=sn, success=True, entity=dict(
+                token=user_token.id,
+                user=user_map,
+                emsg_server=self._get_emsg_server()
             ))
         else:
-            return self._success(sn=sn,success=False,code='1002',reason=errors.error_1002)
+            return self._success(sn=sn, success=False, code='1002', reason=errors.error_1002)
 
     @token
-    def get_user_info(self,body):
+    def get_user_info(self, body):
         '''
         3 获取用户信息
         '''
-        sn,token,params = self._get_sn_token_params(body)
+        sn, token, params = self._get_sn_token_params(body)
         user_map = {}
         if params and params.has_key('userid'):
             userid = params.get('userid')
             user_map = self._get_user_map(id=userid)
-        else :
+        else:
             user_map = self._get_user_map(token=token)
-        if user_map :
-            return self._success(sn=sn,success=True,entity=dict(
-                    user = user_map,
+        if user_map:
+            return self._success(sn=sn, success=True, entity=dict(
+                user=user_map,
             ))
         else:
-            return self._success(sn=sn,success=False,code='1003',reason=errors.error_1003)
+            return self._success(sn=sn, success=False, code='1003', reason=errors.error_1003)
 
     @token
-    def update_user_info(self,body):
+    def update_user_info(self, body):
         '''
         4 修改用户信息
         '''
-        sn,token,params = self._get_sn_token_params(body)
+        sn, token, params = self._get_sn_token_params(body)
         try:
             with transaction.atomic():
-                auth_user,user_info = self._get_user_by_token(token)
+                auth_user, user_info = self._get_user_by_token(token)
                 email = params.get('email')
-                if email and email != auth_user.email :
+                if email and email != auth_user.email:
                     try:
                         User.objects.get(email=email)
-                        return self._success(sn=sn,success=False,code='1001_2',reason=errors.error_1001_2)
+                        return self._success(sn=sn, success=False, code='1001_2', reason=errors.error_1001_2)
                     except:
                         auth_user.email = email
                         auth_user.save()
@@ -192,55 +210,252 @@ class user(BaseService):
                 if gender: user_info.gender = gender
                 if birthday: user_info.birthday = birthday
                 user_info.save()
-                return self._success(sn=sn,success=True)
+                return self._success(sn=sn, success=True)
         except Exception as e:
             logger.error(e)
             logger.error(traceback.format_exc())
-            return self._success(sn=sn,success=False,code='1004',reason=errors.error_1004)
+            return self._success(sn=sn, success=False, code='1004', reason=errors.error_1004)
 
     @token
-    def set_icon(self,body):
+    def set_icon(self, body):
         '''
         5 修改用户头像
         '''
-        sn,token,params = self._get_sn_token_params(body)
+        sn, token, params = self._get_sn_token_params(body)
         icon = params.get('icon_url')
-        auth_user,user_info = self._get_user_by_token(token)
+        auth_user, user_info = self._get_user_by_token(token)
         user_info.icon = icon
         user_info.save()
-        return self._success(sn=sn,success=True)
+        return self._success(sn=sn, success=True)
 
     @token
-    def update_password(self,body):
+    def update_password(self, body):
         '''
         6 修改密码
         '''
         try:
-            sn,token,params = self._get_sn_token_params(body)
-            auth_user,user_info = self._get_user_by_token(token)
+            sn, token, params = self._get_sn_token_params(body)
+            auth_user, user_info = self._get_user_by_token(token)
             old_password = params.get('old_password')
             new_password = params.get('new_password')
             if old_password and new_password:
                 if auth_user.check_password(old_password):
                     auth_user.set_password(new_password)
                     auth_user.save()
-                    return self._success(sn=sn,success=True)
+                    return self._success(sn=sn, success=True)
                 else:
-                    return self._success(sn=sn,success=False,code='1006',reason=errors.error_1006_2)
+                    return self._success(sn=sn, success=False, code='1006', reason=errors.error_1006_2)
             else:
-                return self._success(sn=sn,success=False,code='1006',reason=errors.error_1006_1)
+                return self._success(sn=sn, success=False, code='1006', reason=errors.error_1006_1)
         except Exception as e:
             logger.error(e)
             logger.error(traceback.format_exc())
-            return self._success(sn=sn,success=False,code='1006',reason=errors.error_1006_3)
+            return self._success(sn=sn, success=False, code='1006', reason=errors.error_1006_3)
 
-
+    def contact(self, body):
+        '''
+        7 联系人接口
+        "action":"add\reject\accept\list"
+        :param body:
+        :return:
+        '''
+        try:
+            sn, token, params = self._get_sn_token_params(body)
+            action = params.get('action')
+            if 'add' == action : # 添加好友
+                return self._add_contact(body)
+            elif 'reject' == action :# 拒绝
+                return self._reject_contact(body)
+            elif 'accept' == action :# 接受
+                return self._accept_contact(body)
+            elif 'list' == action :# 好友列表
+                return self._list_contact(body)
+            else :
+                return self._success(sn=sn, success=False, code='1007', reason=errors.error_1007_3)
+            return self._success(sn=sn, success=True)
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
+            return self._success(sn=sn, success=False, code='1007', reason=errors.error_1007)
 
     ########################################
     ## private
     ########################################
+    def _list_contact(self,body):
+        '''
+        好友列表
+        :param body:
+        :return:
+        '''
+        sn, token, params = self._get_sn_token_params(body)
+        auth_user, user_info = self._get_user_by_token(token)
+        userid = auth_user.id
+        contacts = []
+        for contact in UserContact.objects.filter(userid=userid ):
+            user_info = UserInfo.objects.get(id=userid)
+            contacts.append(dict(
+                userid=user_info.id,
+                icon = user_info.icon,
+                nickname = user_info.nickname
+            ))
+        return self._success(sn=sn, success=True,entity={'contacts':contacts})
 
-    def _get_user_map(self,id=None,auth_user=None,user_info=None,token=None):
+    def _accept_contact(self,body):
+        '''
+        接受添加好友请求
+        :param body:
+        :return:
+        '''
+        try:
+            sn, token, params = self._get_sn_token_params(body)
+            auth_user, user_info = self._get_user_by_token(token)
+            userid = auth_user.id
+            contact_id = params.get('contact_id')
+            with transaction.atomic():
+                # 将对方添加我为好友的数据状态改为 拒绝
+                for contact in UserContact.objects.filter(userid=contact_id, contactid=userid):
+                    contact.status = 'accept'
+                    contact.et = int(time.time())
+                    contact.save()
+                # 在数据库中创建联系人记录
+                user_contact = UserContact()
+                user_contact.userid = userid
+                user_contact.contactid = contact_id
+                user_contact.status = 'accept'
+                user_contact.save()
+
+                packet = {
+                    "envelope": {
+                        "id": uuid.uuid4().hex,
+                        "type": 1,
+                        "from": self._jid(userid),
+                        "to": self._jid(contact_id),
+                        "ack": 1
+                    },
+                    "vsn": "0.0.1",
+                    "payload": {
+                        "attrs": {
+                            "message_type": "contact",
+                            "action": "accept",
+                            "contact_icon": user_info.icon,
+                            "contact_nickname": user_info.nickname,
+                            "contact_id": str(userid)
+                        }
+                    }
+                }
+                packet_str = json.dumps(packet)
+                logger.info("accept_contact_packet = %s" % packet_str)
+                emsg_client.process(packet_str)
+            return self._success(sn=sn, success=True)
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
+            return self._success(sn=sn, success=False, code='1007', reason=errors.error_1007)
+
+    def _reject_contact(self,body):
+        '''
+        拒绝添加好友请求
+        :param body:
+        :return:
+        '''
+        try:
+            sn, token, params = self._get_sn_token_params(body)
+            auth_user, user_info = self._get_user_by_token(token)
+            userid = auth_user.id
+            contact_id = params.get('contact_id')
+            with transaction.atomic():
+                # 将对方添加我为好友的数据状态改为 拒绝
+                for contact in UserContact.objects.filter(userid=contact_id, contactid=userid):
+                    contact.status = 'reject'
+                    contact.et = int(time.time())
+                    contact.save()
+
+                packet = {
+                    "envelope": {
+                        "id": uuid.uuid4().hex,
+                        "type": 1,
+                        "from": self._jid(userid),
+                        "to": self._jid(contact_id),
+                        "ack": 1
+                    },
+                    "vsn": "0.0.1",
+                    "payload": {
+                        "attrs": {
+                            "message_type": "contact",
+                            "action": "reject",
+                            "contact_icon": user_info.icon,
+                            "contact_nickname": user_info.nickname,
+                            "contact_id": str(userid)
+                        }
+                    }
+                }
+                packet_str = json.dumps(packet)
+                logger.info("reject_contact_packet = %s" % packet_str)
+                emsg_client.process(packet_str)
+            return self._success(sn=sn, success=True)
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
+            return self._success(sn=sn, success=False, code='1007', reason=errors.error_1007)
+
+    def _add_contact(self,body):
+        '''
+        添加好友
+        :param body:
+        :return:
+        '''
+        try:
+            sn, token, params = self._get_sn_token_params(body)
+            auth_user, user_info = self._get_user_by_token(token)
+            userid = auth_user.id
+            contact_id = params.get('contact_id')
+            with transaction.atomic():
+                for contact in UserContact.objects.filter(userid=userid, contactid=contact_id):
+                    if 'accept' == contact.status:
+                        # 已添加,不能重复添加
+                        return self._success(sn=sn, success=False, code='1007', reason=errors.error_1007_1)
+                    else :
+                        # 如果拒绝过,或者正在等待对方应答,则删除这个记录,重新添加
+                        contact.delete()
+
+                # 在数据库中创建联系人记录
+                user_contact = UserContact()
+                user_contact.userid = userid
+                user_contact.status = 'add'
+                user_contact.contactid = contact_id
+                user_contact.save()
+                # 并且判断对方是否添加过自己,如果没有添加过,则发加好友推送
+                if not UserContact.objects.filter(userid=contact_id, contactid=userid):
+                    # 对方没有加过我,需要推送
+                    packet = {
+                        "envelope": {
+                            "id": uuid.uuid4().hex,
+                            "type": 1,
+                            "from": self._jid(userid),
+                            "to": self._jid(contact_id),
+                            "ack": 1
+                        },
+                        "vsn": "0.0.1",
+                        "payload": {
+                            "attrs": {
+                                "message_type": "contact",
+                                "action": "add",
+                                "contact_icon": user_info.icon,
+                                "contact_nickname": user_info.nickname,
+                                "contact_id": str(userid)
+                            }
+                        }
+                    }
+                    packet_str = json.dumps(packet)
+                    logger.info("add_contact_packet = %s" % packet_str)
+                    emsg_client.process(packet_str)
+            return self._success(sn=sn, success=True)
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
+            return self._success(sn=sn, success=False, code='1007', reason=errors.error_1007_2)
+
+    def _get_user_map(self, id=None, auth_user=None, user_info=None, token=None):
         '''
         根据传入的参数不同,用不同的方式去拼凑 user 字典
         包含 auth_user 和 user_info 两张表的信息,其中日期可以处理掉,转成时间戳
@@ -253,22 +468,22 @@ class user(BaseService):
         if id:
             auth_user = User.objects.get(id=id)
             user_info = UserInfo.objects.get(id=id)
-        elif token :
-            auth_user,user_info = self._get_user_by_token(token)
-            #tokenPo = UserToken.objects.get(id=token)
-            #userid = tokenPo.userid
-            #auth_user = User.objects.get(id=userid)
-            #user_info = UserInfo.objects.get(id=userid)
-        elif auth_user==None or user_info==None:
+        elif token:
+            auth_user, user_info = self._get_user_by_token(token)
+            # tokenPo = UserToken.objects.get(id=token)
+            # userid = tokenPo.userid
+            # auth_user = User.objects.get(id=userid)
+            # user_info = UserInfo.objects.get(id=userid)
+        elif auth_user == None or user_info == None:
             raise Exception("notfound")
         d1 = model_to_dict(user_info)
-        d2 = dict(username=auth_user.username,email=auth_user.email)
+        d2 = dict(username=auth_user.username, email=auth_user.email)
         d1.update(d2)
         return d1
 
     def _get_emsg_server(self):
         el = EmsgServer.objects.all()
-        if el :
+        if el:
             e = el[0]
             e.licence = ''
             d = model_to_dict(e)
@@ -277,7 +492,7 @@ class user(BaseService):
         else:
             return {}
 
-    def _gen_token(self,userid):
+    def _gen_token(self, userid):
         user_token = UserToken()
         user_token.id = uuid.uuid4().hex
         user_token.userid = userid
@@ -286,5 +501,25 @@ class user(BaseService):
         return user_token
 
 
+class foo(BaseService):
+    def bar(self, body):
+        try:
+            packet = {
+                "envelope": {
+                    "id": "xxxx",
+                    "type": 1,
+                    "from": "usera@test",
+                    "to": "userb@test",
+                    "ack": 1
+                },
+                "vsn": "0.0.1",
+                "payload": {
+                    "content": "hellow world , foo bar"
+                }
+            }
+            packet_str = json.dumps(packet)
+            emsg_client.process(packet_str)
+        except:
+            pass
 
-
+        return self._success(sn='hello', success=True)
