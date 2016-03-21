@@ -289,10 +289,16 @@ class user(BaseService):
         '''
         try:
             sn, token, params = self._get_sn_token_params(body)
+            email = params.get('email')
             nickname = params.get('nickname')
             user_list = []
-            for user_info in UserInfo.objects.filter(nickname__contains=nickname):
-                user_list.append(model_to_dict(user_info))
+            if email :
+                for auth_user in User.objects.filter(email__contains=email):
+                    user_info = UserInfo.objects.get(id=auth_user.id)
+                    user_list.append(model_to_dict(user_info))
+            elif nickname :
+                for user_info in UserInfo.objects.filter(nickname__contains=nickname):
+                    user_list.append(model_to_dict(user_info))
             return self._success(sn=sn, success=True,entity={'user_list':user_list})
         except Exception as e:
             logger.error(e)
