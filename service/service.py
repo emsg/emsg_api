@@ -100,6 +100,7 @@ class user(BaseService):
                 email = body['params']['email']
                 gender = body['params']['gender']
                 geo = body['params'].get('geo')  # 坐标
+                device_token = body['params'].get('device_token')  # ios 设备 id
                 birthday = body['params']['birthday']
                 # 如果能取到,则不可以再注册了,就是注册过了
                 # 用户名和邮箱不能重复
@@ -130,6 +131,7 @@ class user(BaseService):
                 user_info.nickname = nickname
                 user_info.gender = gender
                 user_info.geo = geo
+                user_info.device_token = device_token
                 user_info.birthday = birthday
                 user_info.save()
                 logger.debug('create_user_info ==> %s' % user.__dict__)
@@ -154,11 +156,15 @@ class user(BaseService):
         sn = body.get('sn')
         username = body['params']['username']
         password = body['params']['password']
+        device_token = body['params'].get('device_token')
         u = User.objects.get(username=username)
         if u.check_password(password):
-            # TODO 获取用户信息
             user_token = self._gen_token(u.id)
             user_map = self._get_user_map(id=u.id)
+            if device_token :
+                user_info = UserInfo.objects.get(id=u.id)
+                user_info.device_token = device_token
+                user_info.save()
             return self._success(sn=sn, success=True, entity=dict(
                 token=user_token.id,
                 user=user_map,
@@ -310,6 +316,24 @@ class user(BaseService):
             logger.error(e)
             logger.error(traceback.format_exc())
             return self._success(sn=sn, success=False, code='1008', reason=errors.error_1008)
+
+    @token
+    def logout(self,body):
+        '''
+        9 退出登陆
+        '''
+        sn,token,params = self._get_sn_token_params(body)
+        try:
+            with transaction.atomic():
+                user_token = UserToken.objects.get(id=token)
+                userid = user_token.userid
+                user_info = UserInfo.objects.get(id=userid)
+                user_info.device_token = ''
+                user_info.save()
+                user_token.delete()
+        except :
+            pass
+        return self._success(sn=sn, success=True)
 
     ########################################
     ## private
