@@ -359,7 +359,7 @@ class user(BaseService):
                         "attrs": {
                             "message_type": "contact",
                             "action": "delete",
-                            "contact_id": str(contact_id)
+                            "contact_id": str(userid)
                         }
                     }
                 }
