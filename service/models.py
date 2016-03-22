@@ -10,6 +10,7 @@ class UserInfo(models.Model):
     birthday = models.CharField(max_length=100L,blank=True,null=True)
     icon = models.CharField(max_length=1000L,blank=True,null=True)
     geo = models.CharField(max_length=1000L,blank=True,null=True)
+    device_token = models.CharField(max_length=200L,blank=True,null=True)
     class Meta:
         db_table='user_info'
 
