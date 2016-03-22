@@ -28,7 +28,6 @@ class user_message(BaseService):
         :param body:
         :return:
         '''
-        body = json.loads(body)
         sn = body['sn']
         packet = body['params']
         logger.info('[emsg_offline] packet = %s' % packet)
@@ -41,7 +40,6 @@ class emsg_auth(BaseService):
         '''
         sn,userid,token = '','',''
         try:
-            body = json.loads(body)
             sn = body.get('sn')
             userid = body['params']['uid']
             token = body['params']['token']
