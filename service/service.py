@@ -323,12 +323,9 @@ class user(BaseService):
         userid = auth_user.id
         contacts = []
         for contact in UserContact.objects.filter(userid=userid ):
-            user_info = UserInfo.objects.get(id=userid)
-            contacts.append(dict(
-                id=user_info.id,
-                icon = user_info.icon,
-                nickname = user_info.nickname
-            ))
+            if 'accept' == contact.status:
+                user_map = self._get_user_map(id=contact.contactid)
+                contacts.append(user_map)
         return self._success(sn=sn, success=True,entity={'contacts':contacts})
 
     def _accept_contact(self,body):
