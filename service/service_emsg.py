@@ -21,7 +21,6 @@ from apns_clerk import Message, Session, APNs
 from apns_clerk.apns import Result
 from apns_clerk.backends.dummy import Backend as DummyBackend
 
-
 '''
 emsg_server 回调接口文档
 https://github.com/cc14514/emsg_sdk/wiki/emsg_server-%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3
