@@ -269,6 +269,8 @@ class user(BaseService):
                 return self._reject_contact(body)
             elif 'accept' == action :# 接受
                 return self._accept_contact(body)
+            elif 'delete' == action :# 删除
+                return self._delete_contact(body)
             elif 'list' == action :# 好友列表
                 return self._list_contact(body)
             else :
@@ -328,6 +330,48 @@ class user(BaseService):
                 contacts.append(user_map)
         return self._success(sn=sn, success=True,entity={'contacts':contacts})
 
+    def _delete_contact(self,body):
+        '''
+        删除联系人
+        :param body:
+        :return:
+        '''
+        try:
+            sn, token, params = self._get_sn_token_params(body)
+            auth_user, user_info = self._get_user_by_token(token)
+            userid = auth_user.id
+            contact_id = params.get('contact_id')
+            with transaction.atomic():
+                for contact in UserContact.objects.filter(userid=contact_id, contactid=userid):
+                    contact.delete()
+                for user_contact in UserContact.objects.filter(userid=userid,contactid=contact_id) :
+                    user_contact.delete()
+                packet = {
+                    "envelope": {
+                        "id": uuid.uuid4().hex,
+                        "type": 1,
+                        "from": self._jid(userid),
+                        "to": self._jid(contact_id),
+                        "ack": 1
+                    },
+                    "vsn": "0.0.1",
+                    "payload": {
+                        "attrs": {
+                            "message_type": "contact",
+                            "action": "delete",
+                            "contact_id": str(contact_id)
+                        }
+                    }
+                }
+                packet_str = json.dumps(packet)
+                logger.info("delete_contact_packet = %s" % packet_str)
+                emsg_client.process(packet_str)
+        except Exception as e :
+            logger.error(e)
+            logger.error(traceback.format_exc())
+            return self._success(sn=sn, success=False, code='1007', reason=errors.error_1007)
+        return self._success(sn=sn, success=True)
+
     def _accept_contact(self,body):
         '''
         接受添加好友请求
@@ -346,6 +390,9 @@ class user(BaseService):
                     contact.et = int(time.time())
                     contact.save()
                 # 在数据库中创建联系人记录
+                # 清理数据,重复接受时产生垃圾数据
+                for user_contact in UserContact.objects.filter(userid=userid,contactid=contact_id) :
+                    user_contact.delete()
                 user_contact = UserContact()
                 user_contact.userid = userid
                 user_contact.contactid = contact_id
