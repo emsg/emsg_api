@@ -64,8 +64,16 @@ class user_message(BaseService):
                 content = '收到一个坐标分享'
             elif 'audio' == messageType:
                 content = '收到一条语音'
+            elif 'contact' == messageType: # 联系人接口通知
+                action = attrs.get('action')
+                if 'add' == action:
+                    content = '添加联系人通知'
+                elif 'accept' == action:
+                    content = '接受好友申请通知'
+                elif 'reject' == action:
+                    content = '拒绝好友申请通知'
             total = packet.get('total')
-            if device_token :
+            if content and device_token :
                 message = Message(tokens=[device_token], alert=content, badge=int(total), content_available=1, my_extra=15)
                 srv = APNs(con)
                 res = srv.send(message)
