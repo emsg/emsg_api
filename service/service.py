@@ -381,9 +381,12 @@ class user(BaseService):
                     "vsn": "0.0.1",
                     "payload": {
                         "attrs": {
-                            "message_type": "contact",
                             "action": "delete",
-                            "contact_id": str(userid)
+                            "message_type": "contact",
+                            "contact_id": str(userid),
+
+                            "messageType": "contact",
+                            "contactId": str(userid),
                         }
                     }
                 }
@@ -434,11 +437,16 @@ class user(BaseService):
                     "vsn": "0.0.1",
                     "payload": {
                         "attrs": {
-                            "message_type": "contact",
                             "action": "accept",
+                            "message_type": "contact",
                             "contact_icon": user_info.icon,
                             "contact_nickname": user_info.nickname,
-                            "contact_id": str(userid)
+                            "contact_id": str(userid),
+
+                            "messageType": "contact",
+                            "contactIcon": user_info.icon,
+                            "contactNickname": user_info.nickname,
+                            "contactId": str(userid)
                         }
                     }
                 }
@@ -468,7 +476,6 @@ class user(BaseService):
                     contact.status = 'reject'
                     contact.et = int(time.time())
                     contact.save()
-
                 packet = {
                     "envelope": {
                         "id": uuid.uuid4().hex,
@@ -480,14 +487,20 @@ class user(BaseService):
                     "vsn": "0.0.1",
                     "payload": {
                         "attrs": {
-                            "message_type": "contact",
                             "action": "reject",
+                            "message_type": "contact",
                             "contact_icon": user_info.icon,
                             "contact_nickname": user_info.nickname,
-                            "contact_id": str(userid)
+                            "contact_id": str(userid),
+
+                            "messageType": "contact",
+                            "contactIcon": user_info.icon,
+                            "contactNickname": user_info.nickname,
+                            "contactId": str(userid)
                         }
                     }
                 }
+
                 packet_str = json.dumps(packet)
                 logger.info("reject_contact_packet = %s" % packet_str)
                 emsg_client.process(packet_str)
@@ -537,11 +550,16 @@ class user(BaseService):
                         "vsn": "0.0.1",
                         "payload": {
                             "attrs": {
-                                "message_type": "contact",
                                 "action": "add",
+                                "message_type": "contact",
                                 "contact_icon": user_info.icon,
                                 "contact_nickname": user_info.nickname,
-                                "contact_id": str(userid)
+                                "contact_id": str(userid),
+
+                                "messageType": "contact",
+                                "contactIcon": user_info.icon,
+                                "contactNickname": user_info.nickname,
+                                "contactId": str(userid)
                             }
                         }
                     }
