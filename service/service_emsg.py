@@ -100,7 +100,7 @@ class emsg_auth(BaseService):
             token = body['params']['token']
             tokenPo = UserToken.objects.get(id=token)
             if tokenPo.userid == userid :
-                logger.info('[emsg_auth.auth success] sn=%s , token=%s , userid=%s' % (sn,userid,token))
+                logger.info('[emsg_auth.auth success] sn=%s , userid=%s , token=%s' % (sn,userid,token))
                 return self._success(sn=sn,success=True)
             else:
                 logger.info('[emsg_auth.auth fail] sn=%s , token=%s , userid=%s' % (sn,userid,token))

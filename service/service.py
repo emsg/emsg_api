@@ -12,10 +12,11 @@ from django.contrib.auth.models import User
 from django.db import transaction
 import errors
 from models import *
-
+import pysolr
 logger = logging.getLogger(__name__)
 from django.forms.models import model_to_dict
 
+emsguser_solr = pysolr.Solr(url='http://180.76.153.246:8983/solr/emsguser')
 
 def token(x):
     '''
@@ -334,6 +335,98 @@ class user(BaseService):
         except :
             pass
         return self._success(sn=sn, success=True)
+
+    @token
+    def set_geo(self,body):
+        '''
+        输入参数
+        {
+          "sn": "sn_10",
+          "service": "user",
+          "method": "set_geo",
+          "token":"用户身份标示",
+          "params": {
+            "geo":"坐标格式: lat,lng"
+          }
+        }
+
+        &q=*:*&fq={!geofilt}&sfield=store&pt=45.15,-93.85&d=50&sort=geodist() asc
+        '''
+        sn, token, params = self._get_sn_token_params(body)
+        try:
+            auth_user, user_info = self._get_user_by_token(token)
+            userid = user_info.id
+            nickname = user_info.nickname
+            gender = user_info.gender
+            icon = user_info.icon
+            geo = params.get('geo')
+            user_info.geo = geo
+            user_info.save()
+            emsguser_solr.add(docs=[dict(
+                id = userid,
+                nickname_s = nickname,
+                gender_s = gender,
+                geo_p = geo,
+                icon_s = icon
+            )])
+        except :
+            err = traceback.format_exc()
+            logger.error(err)
+            return self._success(sn=sn, success=False, code='1010', reason=err)
+        return self._success(sn=sn, success=True)
+
+    @token
+    def find_user_by_geo(self,body):
+        '''
+        {
+          "sn": "sn_11",
+          "service": "user",
+          "method": "find_user_by_geo",
+          "token":"用户身份标示",
+          "params": {
+            "geo":"坐标格式: lat,lng",
+            "gender":"性别：男／女，如果传空则忽略此条件",
+            "page_size":"每页几条，默认20",
+            "page_no":"第几页，从0开始"
+          }
+        }
+        '''
+        sn, token, params = self._get_sn_token_params(body)
+        geo = params.get('geo')
+        page_size = params.get('page_size')
+        page_no = params.get('page_no')
+        gender = params.get('gender')
+        if not page_size : page_no = 20
+        if not page_no : page_no = 0
+        if gender :
+            q = "gender:%s" % gender
+        else :
+            q = "*:*"
+        result = emsguser_solr.search(
+            q, fq="{!geofilt}", sfield="geo_p", d="500", sort="geodist() asc", fl="*,_dist_:geodist()",
+            pt=geo,
+            start=page_no,
+            rows=page_size
+        )
+        total_count = result.hits
+        user_list = []
+        if total_count:
+            for row in result.docs :
+                u = dict(
+                    id=row.get('id'),
+                    nickname = row.get('nickname_s'),
+                    gender = row.get('gender_s'),
+                    icon = row.get('icon_s'),
+                    dist = row.get('_dist_'),
+                )
+                user_list.append(u)
+
+        return self._success(sn=sn, success=True,entity=dict(
+            page_size = page_size,
+            page_no = page_no,
+            total_count = total_count,
+            user_list = user_list
+        ))
 
     ########################################
     ## private
