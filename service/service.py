@@ -16,7 +16,7 @@ import pysolr
 logger = logging.getLogger(__name__)
 from django.forms.models import model_to_dict
 
-emsguser_solr = pysolr.Solr(url='http://180.76.153.246:8983/solr/emsguser')
+emsguser_solr = pysolr.Solr(url='http://emsgsimple.db:8983/solr/emsguser')
 
 def token(x):
     '''
