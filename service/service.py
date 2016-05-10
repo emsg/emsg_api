@@ -2,7 +2,7 @@
 # coding=utf8
 import json
 import logging
-import time
+import datetime
 import traceback
 import uuid
 import emsg_simple_api.emsg_client as emsg_client
@@ -367,7 +367,9 @@ class user(BaseService):
                 nickname_s = nickname,
                 gender_s = gender,
                 geo_p = geo,
-                icon_s = icon
+                icon_s = icon,
+                ts_i = int(time.time()),
+                last_time_s = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             )])
         except :
             err = traceback.format_exc()
@@ -391,42 +393,52 @@ class user(BaseService):
           }
         }
         '''
-        sn, token, params = self._get_sn_token_params(body)
-        geo = params.get('geo')
-        page_size = params.get('page_size')
-        page_no = params.get('page_no')
-        gender = params.get('gender')
-        if not page_size : page_no = 20
-        if not page_no : page_no = 0
-        if gender :
-            q = "gender:%s" % gender
-        else :
-            q = "*:*"
-        result = emsguser_solr.search(
-            q, fq="{!geofilt}", sfield="geo_p", d="500", sort="geodist() asc", fl="*,_dist_:geodist()",
-            pt=geo,
-            start=page_no,
-            rows=page_size
-        )
-        total_count = result.hits
-        user_list = []
-        if total_count:
-            for row in result.docs :
-                u = dict(
-                    id=row.get('id'),
-                    nickname = row.get('nickname_s'),
-                    gender = row.get('gender_s'),
-                    icon = row.get('icon_s'),
-                    dist = row.get('_dist_'),
-                )
-                user_list.append(u)
+        # 先同步一次坐标
+        self.set_geo(body)
 
-        return self._success(sn=sn, success=True,entity=dict(
-            page_size = page_size,
-            page_no = page_no,
-            total_count = total_count,
-            user_list = user_list
-        ))
+        sn, token, params = self._get_sn_token_params(body)
+        try:
+            geo = params.get('geo')
+            page_size = params.get('page_size')
+            page_no = params.get('page_no')
+            gender = params.get('gender')
+            if not page_size : page_size = 20
+            if not page_no : page_no = 0
+            if gender :
+                q = "gender_s:%s" % gender
+            else :
+                q = "*:*"
+            result = emsguser_solr.search(
+                q, fq="{!geofilt}", sfield="geo_p", d="500", sort="geodist() asc", fl="*,_dist_:geodist()",
+                pt=geo,
+                start=page_no,
+                rows=page_size
+            )
+            total_count = result.hits
+            user_list = []
+            if total_count:
+                for row in result.docs :
+                    u = dict(
+                        id=row.get('id'),
+                        nickname = row.get('nickname_s'),
+                        gender = row.get('gender_s'),
+                        icon = row.get('icon_s'),
+                        last_time = row.get('last_time_s'),
+                        ts = row.get('ts_i'),
+                        dist = row.get('_dist_'),
+                    )
+                    user_list.append(u)
+
+            return self._success(sn=sn, success=True,entity=dict(
+                page_size = page_size,
+                page_no = page_no,
+                total_count = total_count,
+                user_list = user_list
+            ))
+        except:
+            err = traceback.format_exc()
+            logger.error(err)
+            return self._success(sn=sn, success=False, code='1011', reason=err)
 
     ########################################
     ## private
