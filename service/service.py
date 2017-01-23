@@ -411,7 +411,7 @@ class user(BaseService):
             result = emsguser_solr.search(
                 q, fq="{!geofilt}", sfield="geo_p", d="500", sort="geodist() asc", fl="*,_dist_:geodist()",
                 pt=geo,
-                start=page_no,
+                start= int(page_no)*int(page_size),
                 rows=page_size
             )
             total_count = result.hits
