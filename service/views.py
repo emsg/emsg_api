@@ -18,6 +18,7 @@ def main(request):
         body = request.GET.get('body')
     elif request.method == 'POST':
         logger.debug('post')
+        logger.debug(request.POST)
         body = request.POST.get('body')
     logger.info('[INPUT] %s' % body)
     sn = ''

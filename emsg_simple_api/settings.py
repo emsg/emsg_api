@@ -78,8 +78,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'emsg_simple',
-        'USER': 'app',
-        'PASSWORD': 'qiuyouZone',
+        'USER': 'root',
+        'PASSWORD': '',
         'HOST': 'emsgsimple.db',
         'PORT': '3306',
     }

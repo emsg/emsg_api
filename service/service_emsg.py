@@ -42,7 +42,11 @@ class user_message(BaseService):
         packet = body['params']
         # text image geo audio
         logger.info('[emsg_offline] packet = %s' % packet)
-        self._apns_push(packet)
+        try :
+            self._apns_push(packet)
+        except Exception as e:
+            logger.error(e)
+            pass
         return self._success(sn=sn,success=True)
 
     def _apns_push(self,packet):
