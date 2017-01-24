@@ -38,8 +38,21 @@ class UserContact(models.Model):
     contactid = models.IntegerField()
     dnd = models.IntegerField(default=1)
     status = models.CharField(max_length=50L,blank=True,default='add')
-    ct = models.IntegerField(default=int(time.time()))
-    et = models.IntegerField(default=int(time.time()))
+    ct = models.IntegerField()
+    et = models.IntegerField()
     class Meta:
         db_table='user_contact'
+
+class Group(models.Model):
+    '''
+    简单群
+    '''
+    icon = models.CharField(max_length=4000L,blank=True)
+    name = models.CharField(max_length=500L,blank=True)
+    comment = models.CharField(max_length=2000L,blank=True)
+    users = models.CharField(max_length=4000L,blank=True)
+    ct = models.IntegerField()
+    et = models.IntegerField()
+    class Meta:
+        db_table='simple_group'
 

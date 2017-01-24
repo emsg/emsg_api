@@ -9,8 +9,19 @@ import logging
 import errors
 from service import *
 from service_emsg import *
+from service_user import *
+from service_group import *
 import emsg_simple_api.utils as utils
 logger = logging.getLogger(__name__)
+
+service_map = {}
+def getService(s):
+    global service_map
+    service = service_map.get(s)
+    if not service :
+        service = eval('%s()' % s)
+        service_map[s] = service
+    return service
 
 def main(request):
     if request.method == 'GET':
@@ -27,7 +38,7 @@ def main(request):
         sn = param.get('sn')
         service = param['service']
         method = param['method']
-        s = eval('%s()' % service)
+        s = getService(service)
         m = getattr(s,method)
         success = m(param)
         response_success = utils.json_encode(success)

@@ -115,3 +115,21 @@ class emsg_auth(BaseService):
             return self._success(sn=sn,success=False,code='2000',reason=errors.error_2000)
 
 
+#In  :{ "sn": "9966554", "service": "emsg_group", "method": "get_user_list", "params": { "gid":"群ID" } }
+#Out :{ "sn":"9966554", "success":"true", "entity":{"users":["user1","user2","user3",...]} }
+class emsg_group(BaseService):
+    def get_user_list(self,body):
+        try:
+            sn = body.get('sn')
+            gid = body['params']['gid']
+            logger.debug("%s,%s" % (sn,gid))
+            group = Group.objects.get(id=gid)
+            us = group.users
+            if us :
+                all = us.split(',')[1:-1]
+            else :
+                all = []
+            return self._success(sn=sn, success=True, entity=dict( users=all))
+        except:
+            logger.error(traceback.format_exc())
+            return self._success(sn=sn, success=False, code='1008', reason=errors.error_1008)
