@@ -580,6 +580,9 @@ class user(BaseService):
                 user_contact.userid = userid
                 user_contact.status = 'add'
                 user_contact.contactid = contact_id
+                ts = int(time.time())
+                user_contact.ct = ts
+                user_contact.et = ts
                 user_contact.save()
                 # 并且判断对方是否添加过自己,如果没有添加过,则发加好友推送
                 if not UserContact.objects.filter(userid=contact_id, contactid=userid):
