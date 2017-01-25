@@ -469,6 +469,9 @@ class user(BaseService):
                 user_contact.userid = userid
                 user_contact.contactid = contact_id
                 user_contact.status = 'accept'
+                ts = int(time.time())
+                user_contact.ct = ts
+                user_contact.et = ts
                 user_contact.save()
 
                 packet = {
