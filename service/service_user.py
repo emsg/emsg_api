@@ -14,12 +14,13 @@ import errors
 from models import *
 import pysolr
 
+from emsg_simple_api.settings import EMSGUSER_SOLR_RPC
 from service import BaseService,token
 
 logger = logging.getLogger(__name__)
 from django.forms.models import model_to_dict
 
-emsguser_solr = pysolr.Solr(url='http://emsgsimple.db:8983/solr/emsguser')
+emsguser_solr = pysolr.Solr(url=EMSGUSER_SOLR_RPC)
 
 class user(BaseService):
     '''
@@ -595,11 +596,12 @@ class user(BaseService):
                         "payload": {
                             "attrs": {
                                 "action": "add",
+                                # TODO 为了兼容一个错误的命名，稍后修改
                                 "message_type": "contact",
                                 "contact_icon": user_info.icon,
                                 "contact_nickname": user_info.nickname,
                                 "contact_id": str(userid),
-
+                                # -------------------------------------
                                 "messageType": "contact",
                                 "contactIcon": user_info.icon,
                                 "contactNickname": user_info.nickname,

@@ -3,15 +3,18 @@
 
 import json
 import uuid
-
+import logging
 from thrift import Thrift
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from emsg_inf_push import emsg_inf_push
+from emsg_simple_api.settings import EMSG_PUSH
 
-host = 'push.lcemsg.com'
-port = 4281
-licence = '8b035d3b57744b669dd8700bf694bc36'
+logger = logging.getLogger(__name__)
+
+#host = 'push.lcemsg.com'
+#port = 4281
+#licence = '8b035d3b57744b669dd8700bf694bc36'
 
 def process(packet_str):
     '''
@@ -22,15 +25,16 @@ def process(packet_str):
     :return:
     '''
     try:
-        transport = TSocket.TSocket(host, port)
+        transport = TSocket.TSocket(EMSG_PUSH['host'], EMSG_PUSH['port'])
         transport = TTransport.TBufferedTransport(transport)
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
         client = emsg_inf_push.Client(protocol)
         transport.open()
-        client.process(licence=licence, sn=uuid.uuid4().hex, content=packet_str)
+        client.process(licence=EMSG_PUSH['licence'], sn=uuid.uuid4().hex, content=packet_str)
         transport.close()
+        logger.debug("PUSH> %s" % packet_str)
     except Thrift.TException, tx:
-        print '%s' % (tx.message)
+        logger.error(tx.message)
 
 def process_batch(packet_str_list):
     '''
@@ -39,13 +43,14 @@ def process_batch(packet_str_list):
     :return:
     '''
     try:
-        transport = TSocket.TSocket(host, port)
+        transport = TSocket.TSocket(EMSG_PUSH['host'], EMSG_PUSH['port'])
         transport = TTransport.TBufferedTransport(transport)
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
         client = emsg_inf_push.Client(protocol)
         transport.open()
-        client.process_batch(licence=licence, sn=uuid.uuid4().hex, content=packet_str_list)
+        client.process_batch(licence=EMSG_PUSH['licence'], sn=uuid.uuid4().hex, content=packet_str_list)
         transport.close()
+        logger.debug("PUSH_MORE> %s" % len(packet_str_list))
     except Thrift.TException, tx:
-        print '%s' % (tx.message)
+        logger.error(tx.message)
 

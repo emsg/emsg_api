@@ -20,7 +20,7 @@ import json
 from apns_clerk import Message, Session, APNs
 from apns_clerk.apns import Result
 from apns_clerk.backends.dummy import Backend as DummyBackend
-
+from emsg_simple_api.settings import APNS_CERT_PATH
 '''
 emsg_server 回调接口文档
 https://github.com/cc14514/emsg_sdk/wiki/emsg_server-%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3
@@ -29,7 +29,7 @@ https://github.com/cc14514/emsg_sdk/wiki/emsg_server-%E6%8E%A5%E5%8F%A3%E6%96%87
 session = Session()
 # push_sandbox 测试证书
 # push_production 生产证书
-con = session.get_connection("push_sandbox", cert_file="/app/emsg_dev_APNs.pem")
+con = session.get_connection("push_sandbox", cert_file=APNS_CERT_PATH)
 
 class user_message(BaseService):
     def offline(self,body):

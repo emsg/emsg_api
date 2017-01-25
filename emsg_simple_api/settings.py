@@ -13,6 +13,17 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+# 存储用户信息的 SOLR 接口
+EMSGUSER_SOLR_RPC = 'http://emsgsimple.db:8983/solr/emsguser'
+# 消息服务器推送接口
+EMSG_PUSH = {
+    'host': '127.0.0.1',
+    'port': 4281,
+    'licence': '8b035d3b57744b669dd8700bf694bc36'
+}
+# ios 推送证书
+APNS_CERT_PATH = '/app/emsg_dev_APNs.pem'
+
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,9 +35,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '1(8vy=kdk14^56f94^j)wv-8xaw&wzywtzd#y(*x&j0ix0%$f('
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['202.85.214.98','127.0.0.1','localhost']
 
 # Application definition
 
@@ -78,9 +89,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'emsg_simple',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'emsgsimple.db',
+        'USER': 'emsg',
+        'PASSWORD': '123456',
+        'HOST': '127.0.0.1',
         'PORT': '3306',
     }
 }
