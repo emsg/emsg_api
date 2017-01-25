@@ -26,7 +26,8 @@ def process(packet_str):
     '''
     try:
         transport = TSocket.TSocket(EMSG_PUSH['host'], EMSG_PUSH['port'])
-        transport = TTransport.TBufferedTransport(transport)
+        #transport = TTransport.TBufferedTransport(transport)
+        transport = TTransport.TFramedTransport(transport)
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
         client = emsg_inf_push.Client(protocol)
         transport.open()
@@ -44,7 +45,10 @@ def process_batch(packet_str_list):
     '''
     try:
         transport = TSocket.TSocket(EMSG_PUSH['host'], EMSG_PUSH['port'])
-        transport = TTransport.TBufferedTransport(transport)
+        # emsg_server 采用了 buffered 传输方式
+        #transport = TTransport.TBufferedTransport(transport)
+        # sara server 采用了 分帧 传输方式
+        transport = TTransport.TFramedTransport(transport)
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
         client = emsg_inf_push.Client(protocol)
         transport.open()
