@@ -20,7 +20,8 @@ import json
 from apns_clerk import Message, Session, APNs
 from apns_clerk.apns import Result
 from apns_clerk.backends.dummy import Backend as DummyBackend
-from emsg_simple_api.settings import APNS_CERT_PATH
+from emsg_simple_api.settings import APNS_CERT_PATH,DEBUG
+
 '''
 emsg_server 回调接口文档
 https://github.com/cc14514/emsg_sdk/wiki/emsg_server-%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3
@@ -98,6 +99,9 @@ class emsg_auth(BaseService):
         用户登陆时,emsg 会回调此方法
         '''
         sn,userid,token = '','',''
+        if DEBUG :
+            logger.debug("debug_auth_return_true: %s , %s" % (userid,token))
+            return self._success(sn=sn,success=True)
         try:
             sn = body.get('sn')
             userid = body['params']['uid']
