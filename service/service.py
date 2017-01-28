@@ -70,6 +70,14 @@ class BaseService(object):
         es = EmsgServer.objects.all()[0]
         return '%s@%s' % (userid, es.domain)
 
+    def _domain(self):
+        '''
+        获取 domain 信息
+        :return:
+        '''
+        es = EmsgServer.objects.all()[0]
+        return es.domain
+
     def _get_sn_token_params(self, body):
         sn = body.get('sn')
         token = body.get('token')

@@ -15,11 +15,15 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 import os
 # 存储用户信息的 SOLR 接口
 EMSGUSER_SOLR_RPC = 'http://emsgsimple.db:8983/solr/emsguser'
+# 消息服务器 HTTP-RPC 接口
+# https://github.com/emsg/docs/wiki/RPC
+EMSG_RPC = "http://localhost:4280/api/"
+# 消息服务器 RPC 接口的 token,推送参数 license 也用此值
+EMSG_ACCESS_TOKEN = '8b035d3b57744b669dd8700bf694bc36'
 # 消息服务器推送接口
 EMSG_PUSH = {
     'host': '127.0.0.1',
-    'port': 4281,
-    'licence': '8b035d3b57744b669dd8700bf694bc36'
+    'port': 4281
 }
 # ios 推送证书
 APNS_CERT_PATH = '/app/emsg_dev_APNs.pem'
@@ -89,8 +93,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'emsg_simple',
-        'USER': 'emsg',
-        'PASSWORD': '123456',
+        'USER': 'root',
+        'PASSWORD': '',
         'HOST': '127.0.0.1',
         'PORT': '3306',
     }

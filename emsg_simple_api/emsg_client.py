@@ -8,7 +8,7 @@ from thrift import Thrift
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from emsg_inf_push import emsg_inf_push
-from emsg_simple_api.settings import EMSG_PUSH
+from emsg_simple_api.settings import EMSG_PUSH,EMSG_ACCESS_TOKEN
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def process(packet_str):
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
         client = emsg_inf_push.Client(protocol)
         transport.open()
-        client.process(licence=EMSG_PUSH['licence'], sn=uuid.uuid4().hex, content=packet_str)
+        client.process(licence=EMSG_ACCESS_TOKEN, sn=uuid.uuid4().hex, content=packet_str)
         transport.close()
         logger.debug("PUSH> %s" % packet_str)
     except Thrift.TException, tx:
@@ -52,7 +52,7 @@ def process_batch(packet_str_list):
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
         client = emsg_inf_push.Client(protocol)
         transport.open()
-        client.process_batch(licence=EMSG_PUSH['licence'], sn=uuid.uuid4().hex, content=packet_str_list)
+        client.process_batch(licence=EMSG_ACCESS_TOKEN, sn=uuid.uuid4().hex, content=packet_str_list)
         transport.close()
         logger.debug("PUSH_MORE> %s" % len(packet_str_list))
     except Thrift.TException, tx:
